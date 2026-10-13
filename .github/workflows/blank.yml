@@ -1,0 +1,65 @@
+name: Windows Cloud PC - Anydesk (Optimized)
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Start Building...
+    runs-on: windows-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Send Start Alert to Discord
+        run: |
+          $webhookUrl = "https://discord.com/api/webhooks/1559692401885323404/vB34axtoDHT5VrlCmIRG6cmeKD9rZ7v87VyPnTvAn5CadByWwLdqDY3cF6rDUFT9ioMT"
+          $body = @{
+            content = "🚀 **Start:** O GitHub Actions iniciou a criação do seu Cloud PC Windows. A descarregar e a configurar o AnyDesk..."
+          } | ConvertTo-Json
+          Invoke-RestMethod -Uri $webhookUrl -Method Post -Body$body -ContentType "application/json"
+
+      - name: Downloading & Installing Essentials
+        run: |
+          Invoke-WebRequest -Uri "https://download.anydesk.com/AnyDesk.exe" -OutFile "AnyDesk.exe"
+          Start-Process -FilePath "AnyDesk.exe" -ArgumentList "--install `"$env:ProgramFiles (x86)\AnyDesk`" --start-with-win --silent" -Wait
+          Start-Sleep -Seconds 5
+
+      - name: Configure Password
+        run: |
+          $anydeskPath = "${env:ProgramFiles(x86)}\AnyDesk\AnyDesk.exe"
+          cmd.exe /c "echo Senha123456| `"$anydeskPath`" --set-password"
+          Write-Host "Senha configurada."
+
+      - name: Get AnyDesk ID & Send to Discord
+        run: |
+          $anydeskPath = "${env:ProgramFiles(x86)}\AnyDesk\AnyDesk.exe"
+          
+          # Aguarda o AnyDesk gerar o ID inicial
+          Start-Sleep -Seconds 10
+          $anydeskId = & $anydeskPath --get-id
+          
+          Write-Host "ID obtido: $anydeskId"
+
+          # Prepara a mensagem com o ID e Senha para o Discord
+          $webhookUrl = "https://discord.com/api/webhooks/1559692401885323404/vB34axtoDHT5VrlCmIRG6cmeKD9rZ7v87VyPnTvAn5CadByWwLdqDY3cF6rDUFT9ioMT"
+          $body = @{
+            content = "🖥️ **Cloud PC Pronto para Acesso!**`n🔹 **ID do AnyDesk:** `$anydeskId`n🔑 **Senha:** `Senha123456`"
+          } | ConvertTo-Json
+
+          # Envia os dados para o Webhook do Discord
+          Invoke-RestMethod -Uri $webhookUrl -Method Post -Body$body -ContentType "application/json"
+          Write-Host "Dados enviados para o Discord com sucesso!"
+
+      - name: Keep Runner Alive
+        run: |
+          Write-Host "Sessão iniciada e ativa."
+          for ($i = 1; $i -le 360; $i++) {
+            Write-Host "[Ativo] Minuto $i de 360..."
+            Start-Sleep -Seconds 60
+          }
+
+      - name: Clean Up Temporary Files
+        if: always()
+        run: |
+          Remove-Item AnyDesk.exe -ErrorAction SilentlyContinue -Force
+          Write-Host "Limpeza concluída."
+          
