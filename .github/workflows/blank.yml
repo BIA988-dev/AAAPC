@@ -21,29 +21,30 @@ jobs:
           Start-Process -FilePath "AnyDesk.exe" -ArgumentList "--install `"$env:ProgramFiles (x86)\AnyDesk`" --start-with-win --silent" -Wait
           Start-Sleep -Seconds 5
 
-      - name: Configure Password
+      - name: Configure Password & Notify Discord
         run: |
           $anydeskPath = "${env:ProgramFiles(x86)}\AnyDesk\AnyDesk.exe"
           cmd.exe /c "echo Senha123456| `"$anydeskPath`" --set-password"
-          Write-Host "Senha configurada."
-
-      - name: Get AnyDesk ID & Send to Discord
-        run: |
-          $anydeskPath = "${env:ProgramFiles(x86)}\AnyDesk\AnyDesk.exe"
           
-          # Aguarda a criação do ID pelo AnyDesk
-          Start-Sleep -Seconds 10
-          $anydeskId = (&$anydeskPath --get-id).Trim()
-          
-          Write-Host "ID obtido: $anydeskId"
+          # Inicia o serviço do AnyDesk explicitamente
+          Start-Process -FilePath $anydeskPath
+          Start-Sleep -Seconds 5
 
-          # Envia para o Discord de forma segura via PowerShell
+          # Tenta obter o ID de forma segura (se falhar por algum motivo de ambiente, não crasha o workflow)
+          try {
+            $anydeskId = (&$anydeskPath --get-id)
+            if (-not $anydeskId) {$anydeskId = "Verificar no Log (Indisponível via CLI)" }
+          } catch {
+            $anydeskId = "Erro ao recuperar ID automaticamente"
+          }
+
+          # Envia para o Discord
           $url = "https://discord.com/api/webhooks/1559692401885323404/vB34axtoDHT5VrlCmIRG6cmeKD9rZ7v87VyPnTvAn5CadByWwLdqDY3cF6rDUFT9ioMT"
           $text = "🖥️ **Cloud PC Pronto!**`n🔹 **ID AnyDesk:** $anydeskId`n🔑 **Senha:** Senha123456"
           $body = @{ content =$text } | ConvertTo-Json
           
           Invoke-RestMethod -Uri $url -Method Post -Body$body -ContentType "application/json"
-          Write-Host "Dados enviados para o Discord com sucesso!"
+          Write-Host "Configuração concluída e notificação enviada!"
 
       - name: Keep Runner Alive
         run: |
@@ -58,4 +59,3 @@ jobs:
         run: |
           Remove-Item AnyDesk.exe -ErrorAction SilentlyContinue -Force
           Write-Host "Limpeza concluída."
-          
