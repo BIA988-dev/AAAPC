@@ -12,7 +12,8 @@ jobs:
       - name: Send Start Alert to Discord
         run: |
           $url = "https://discord.com/api/webhooks/1559692401885323404/vB34axtoDHT5VrlCmIRG6cmeKD9rZ7v87VyPnTvAn5CadByWwLdqDY3cF6rDUFT9ioMT"
-          curl.exe -H "Content-Type: application/json" -X POST -d '{\"content\": \"🚀 **Start:** O GitHub Actions iniciou a criação do seu Cloud PC Windows!\"}' $url
+          $body = @{ content = "🚀 **Start:** O GitHub Actions iniciou a criação do seu Cloud PC Windows!" } | ConvertTo-Json
+          Invoke-RestMethod -Uri $url -Method Post -Body$body -ContentType "application/json"
 
       - name: Downloading & Installing Essentials
         run: |
@@ -36,12 +37,13 @@ jobs:
           
           Write-Host "ID obtido: $anydeskId"
 
-          # Envia para o Discord via curl sem erros de aspas
+          # Envia para o Discord de forma segura via PowerShell
           $url = "https://discord.com/api/webhooks/1559692401885323404/vB34axtoDHT5VrlCmIRG6cmeKD9rZ7v87VyPnTvAn5CadByWwLdqDY3cF6rDUFT9ioMT"
-          $json = "{`"content`": `"🖥️ **Cloud PC Pronto!**\n🔹 **ID AnyDesk:** $anydeskId\n🔑 **Senha:** Senha123456`"}"
+          $text = "🖥️ **Cloud PC Pronto!**`n🔹 **ID AnyDesk:** $anydeskId`n🔑 **Senha:** Senha123456"
+          $body = @{ content =$text } | ConvertTo-Json
           
-          curl.exe -H "Content-Type: application/json" -X POST -d $json$url
-          Write-Host "Dados enviados para o Discord!"
+          Invoke-RestMethod -Uri $url -Method Post -Body$body -ContentType "application/json"
+          Write-Host "Dados enviados para o Discord com sucesso!"
 
       - name: Keep Runner Alive
         run: |
@@ -56,3 +58,4 @@ jobs:
         run: |
           Remove-Item AnyDesk.exe -ErrorAction SilentlyContinue -Force
           Write-Host "Limpeza concluída."
+          
