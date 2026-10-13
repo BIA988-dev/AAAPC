@@ -26,21 +26,13 @@ jobs:
           $anydeskPath = "${env:ProgramFiles(x86)}\AnyDesk\AnyDesk.exe"
           cmd.exe /c "echo Senha123456| `"$anydeskPath`" --set-password"
           
-          # Inicia o serviço do AnyDesk explicitamente
+          # Inicia o AnyDesk em segundo plano de forma segura
           Start-Process -FilePath $anydeskPath
           Start-Sleep -Seconds 5
 
-          # Tenta obter o ID de forma segura (se falhar por algum motivo de ambiente, não crasha o workflow)
-          try {
-            $anydeskId = (&$anydeskPath --get-id)
-            if (-not $anydeskId) {$anydeskId = "Verificar no Log (Indisponível via CLI)" }
-          } catch {
-            $anydeskId = "Erro ao recuperar ID automaticamente"
-          }
-
-          # Envia para o Discord
+          # Envia a notificação de sucesso para o Discord (sem arriscar crashar no comando do ID)
           $url = "https://discord.com/api/webhooks/1559692401885323404/vB34axtoDHT5VrlCmIRG6cmeKD9rZ7v87VyPnTvAn5CadByWwLdqDY3cF6rDUFT9ioMT"
-          $text = "🖥️ **Cloud PC Pronto!**`n🔹 **ID AnyDesk:** $anydeskId`n🔑 **Senha:** Senha123456"
+          $text = "🖥️ **Cloud PC Pronto!**`n🔑 **Senha:** Senha123456`n*(Nota: O AnyDesk está ativo. Se precisar do ID exato, abra o ecrã do runner ou utilize uma alternativa se necessário)*"
           $body = @{ content =$text } | ConvertTo-Json
           
           Invoke-RestMethod -Uri $url -Method Post -Body$body -ContentType "application/json"
