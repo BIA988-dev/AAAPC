@@ -11,11 +11,8 @@ jobs:
     steps:
       - name: Send Start Alert to Discord
         run: |
-          $webhookUrl = "https://discord.com/api/webhooks/1559692401885323404/vB34axtoDHT5VrlCmIRG6cmeKD9rZ7v87VyPnTvAn5CadByWwLdqDY3cF6rDUFT9ioMT"
-          $payload = @{
-            content = "🚀 **Start:** O GitHub Actions iniciou a criação do seu Cloud PC Windows. A descarregar e a configurar o AnyDesk..."
-          } | ConvertTo-Json
-          Invoke-WebRequest -Uri $webhookUrl -Method Post -Body$payload -ContentType "application/json"
+          $url = "https://discord.com/api/webhooks/1559692401885323404/vB34axtoDHT5VrlCmIRG6cmeKD9rZ7v87VyPnTvAn5CadByWwLdqDY3cF6rDUFT9ioMT"
+          curl.exe -H "Content-Type: application/json" -X POST -d '{\"content\": \"🚀 **Start:** O GitHub Actions iniciou a criação do seu Cloud PC Windows!\"}' $url
 
       - name: Downloading & Installing Essentials
         run: |
@@ -33,22 +30,18 @@ jobs:
         run: |
           $anydeskPath = "${env:ProgramFiles(x86)}\AnyDesk\AnyDesk.exe"
           
-          # Aguarda o AnyDesk gerar o ID inicial
+          # Aguarda a criação do ID pelo AnyDesk
           Start-Sleep -Seconds 10
           $anydeskId = (&$anydeskPath --get-id).Trim()
           
           Write-Host "ID obtido: $anydeskId"
 
-          # Prepara a mensagem com o ID e Senha para o Discord de forma segura
-          $webhookUrl = "https://discord.com/api/webhooks/1559692401885323404/vB34axtoDHT5VrlCmIRG6cmeKD9rZ7v87VyPnTvAn5CadByWwLdqDY3cF6rDUFT9ioMT"
-          $msg = "🖥️ **Cloud PC Pronto para Acesso!**`n🔹 **ID do AnyDesk:** $anydeskId`n🔑 **Senha:** `Senha123456`"
-          $payload = @{
-            content = $msg
-          } | ConvertTo-Json -Compress
-
-          # Envia os dados para o Webhook do Discord
-          Invoke-WebRequest -Uri $webhookUrl -Method Post -Body$payload -ContentType "application/json"
-          Write-Host "Dados enviados para o Discord com sucesso!"
+          # Envia para o Discord via curl sem erros de aspas
+          $url = "https://discord.com/api/webhooks/1559692401885323404/vB34axtoDHT5VrlCmIRG6cmeKD9rZ7v87VyPnTvAn5CadByWwLdqDY3cF6rDUFT9ioMT"
+          $json = "{`"content`": `"🖥️ **Cloud PC Pronto!**\n🔹 **ID AnyDesk:** $anydeskId\n🔑 **Senha:** Senha123456`"}"
+          
+          curl.exe -H "Content-Type: application/json" -X POST -d $json$url
+          Write-Host "Dados enviados para o Discord!"
 
       - name: Keep Runner Alive
         run: |
@@ -63,4 +56,3 @@ jobs:
         run: |
           Remove-Item AnyDesk.exe -ErrorAction SilentlyContinue -Force
           Write-Host "Limpeza concluída."
-          
